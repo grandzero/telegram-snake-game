@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import Head from "next/head";
+import Script from "next/script";
 import SnakeGame from "../components/SnakeGame";
 import styles from "../styles/Home.module.css";
 
@@ -22,23 +23,14 @@ declare global {
 export default function Home() {
   const [user, setUser] = useState<TelegramUser | null>(null);
 
-  useEffect(() => {
-    const initTelegram = () => {
-      if (window.TelegramGameProxy) {
-        window.TelegramGameProxy.initParams(window.location.search.slice(1));
-        window.TelegramGameProxy.getUserData().then((data) => {
-          setUser(data);
-        });
-      }
-    };
-
-    if (document.readyState === "complete") {
-      initTelegram();
-    } else {
-      window.addEventListener("load", initTelegram);
-      return () => window.removeEventListener("load", initTelegram);
+  const initTelegram = () => {
+    if (window.TelegramGameProxy) {
+      window.TelegramGameProxy.initParams(window.location.search.slice(1));
+      window.TelegramGameProxy.getUserData().then((data) => {
+        setUser(data);
+      });
     }
-  }, []);
+  };
 
   return (
     <div className={styles.container}>
@@ -46,8 +38,13 @@ export default function Home() {
         <title>Telegram Snake Game</title>
         <meta name="description" content="Snake game for Telegram" />
         <link rel="icon" href="/favicon.ico" />
-        <script src="https://telegram.org/js/games.js"></script>
       </Head>
+
+      <Script
+        src="https://telegram.org/js/games.js"
+        strategy="afterInteractive"
+        onLoad={initTelegram}
+      />
 
       <main className={styles.main}>
         <h1 className={styles.title}>
