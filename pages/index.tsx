@@ -48,10 +48,6 @@ export default function Home() {
       />
 
       <main className={styles.main}>
-        <h1 className={styles.title}>
-          Welcome to Retro Snake, {user ? user.first_name : "Player"}!
-        </h1>
-
         <SnakeGame user={user} />
       </main>
     </div>
