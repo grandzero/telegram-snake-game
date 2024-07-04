@@ -28,7 +28,7 @@ const SnakeGame: React.FC<SnakeGameProps> = ({ user }) => {
   useEffect(() => {
     const updateGameSize = () => {
       const width = Math.min(window.innerWidth - 20, 400);
-      const height = Math.min(window.innerHeight - 200, 400);
+      const height = width; // Make it square
       setGameSize({ width, height });
     };
 
@@ -38,9 +38,13 @@ const SnakeGame: React.FC<SnakeGameProps> = ({ user }) => {
   }, []);
 
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    fetchLeaderboard();
+  }, []);
 
+  useEffect(() => {
+    if (!canvasRef.current) return;
+
+    const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
@@ -52,8 +56,9 @@ const SnakeGame: React.FC<SnakeGameProps> = ({ user }) => {
 
     let snake = [{ x: 10, y: 10 }];
     let food = { x: 15, y: 15 };
-    let dx = 0;
+    let dx = 1;
     let dy = 0;
+    let gameLoopInterval: number;
 
     const gameLoop = () => {
       moveSnake();
@@ -61,11 +66,8 @@ const SnakeGame: React.FC<SnakeGameProps> = ({ user }) => {
         handleGameOver();
         return;
       }
-      clearCanvas();
-      drawFood();
-      drawSnake();
-      drawGrid();
-      setTimeout(gameLoop, 100);
+      checkFoodCollision();
+      draw();
     };
 
     const moveSnake = () => {
@@ -92,50 +94,45 @@ const SnakeGame: React.FC<SnakeGameProps> = ({ user }) => {
       );
     };
 
-    const generateFood = () => {
-      food.x = Math.floor(Math.random() * tileCount.x);
-      food.y = Math.floor(Math.random() * tileCount.y);
+    const checkFoodCollision = () => {
+      if (snake[0].x === food.x && snake[0].y === food.y) {
+        generateFood();
+        setScore((prevScore) => prevScore + 1);
+      }
     };
 
-    const clearCanvas = () => {
+    const generateFood = () => {
+      food = {
+        x: Math.floor(Math.random() * tileCount.x),
+        y: Math.floor(Math.random() * tileCount.y),
+      };
+    };
+
+    const draw = () => {
       ctx.fillStyle = "#000";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-    };
 
-    const drawFood = () => {
-      ctx.fillStyle = "#0f0";
-      ctx.fillRect(food.x * gridSize, food.y * gridSize, gridSize, gridSize);
-    };
-
-    const drawSnake = () => {
       ctx.fillStyle = "#0f0";
       snake.forEach((segment) => {
         ctx.fillRect(
           segment.x * gridSize,
           segment.y * gridSize,
-          gridSize,
-          gridSize
+          gridSize - 1,
+          gridSize - 1
         );
       });
-    };
 
-    const drawGrid = () => {
-      ctx.strokeStyle = "#030";
-      for (let i = 0; i <= tileCount.x; i++) {
-        ctx.beginPath();
-        ctx.moveTo(i * gridSize, 0);
-        ctx.lineTo(i * gridSize, canvas.height);
-        ctx.stroke();
-      }
-      for (let i = 0; i <= tileCount.y; i++) {
-        ctx.beginPath();
-        ctx.moveTo(0, i * gridSize);
-        ctx.lineTo(canvas.width, i * gridSize);
-        ctx.stroke();
-      }
+      ctx.fillStyle = "#f00";
+      ctx.fillRect(
+        food.x * gridSize,
+        food.y * gridSize,
+        gridSize - 1,
+        gridSize - 1
+      );
     };
 
     const handleGameOver = () => {
+      clearInterval(gameLoopInterval);
       setGameOver(true);
       updateLeaderboard();
       if (window.TelegramGameProxy) {
@@ -204,13 +201,15 @@ const SnakeGame: React.FC<SnakeGameProps> = ({ user }) => {
 
     document.addEventListener("keydown", handleKeyPress);
     canvas.addEventListener("touchstart", handleTouchStart);
-    gameLoop();
+
+    gameLoopInterval = window.setInterval(gameLoop, 100);
 
     return () => {
       document.removeEventListener("keydown", handleKeyPress);
       canvas.removeEventListener("touchstart", handleTouchStart);
+      clearInterval(gameLoopInterval);
     };
-  }, [gameSize, score]);
+  }, [gameSize, gameOver]);
 
   const updateLeaderboard = async () => {
     if (!user) return;
