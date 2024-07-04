@@ -23,6 +23,19 @@ const SnakeGame: React.FC<SnakeGameProps> = ({ user }) => {
   const [score, setScore] = useState<number>(0);
   const [gameOver, setGameOver] = useState<boolean>(false);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [gameSize, setGameSize] = useState({ width: 300, height: 300 });
+
+  useEffect(() => {
+    const updateGameSize = () => {
+      const width = Math.min(window.innerWidth - 20, 400);
+      const height = Math.min(window.innerHeight - 200, 400);
+      setGameSize({ width, height });
+    };
+
+    updateGameSize();
+    window.addEventListener("resize", updateGameSize);
+    return () => window.removeEventListener("resize", updateGameSize);
+  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -31,8 +44,11 @@ const SnakeGame: React.FC<SnakeGameProps> = ({ user }) => {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const gridSize = 10;
-    const tileCount = canvas.width / gridSize;
+    const gridSize = Math.floor(gameSize.width / 20);
+    const tileCount = {
+      x: Math.floor(gameSize.width / gridSize),
+      y: Math.floor(gameSize.height / gridSize),
+    };
 
     let snake = [{ x: 10, y: 10 }];
     let food = { x: 15, y: 15 };
@@ -67,9 +83,9 @@ const SnakeGame: React.FC<SnakeGameProps> = ({ user }) => {
       const head = snake[0];
       return (
         head.x < 0 ||
-        head.x >= tileCount ||
+        head.x >= tileCount.x ||
         head.y < 0 ||
-        head.y >= tileCount ||
+        head.y >= tileCount.y ||
         snake
           .slice(1)
           .some((segment) => segment.x === head.x && segment.y === head.y)
@@ -77,8 +93,8 @@ const SnakeGame: React.FC<SnakeGameProps> = ({ user }) => {
     };
 
     const generateFood = () => {
-      food.x = Math.floor(Math.random() * tileCount);
-      food.y = Math.floor(Math.random() * tileCount);
+      food.x = Math.floor(Math.random() * tileCount.x);
+      food.y = Math.floor(Math.random() * tileCount.y);
     };
 
     const clearCanvas = () => {
@@ -105,12 +121,13 @@ const SnakeGame: React.FC<SnakeGameProps> = ({ user }) => {
 
     const drawGrid = () => {
       ctx.strokeStyle = "#030";
-      for (let i = 0; i < tileCount; i++) {
+      for (let i = 0; i <= tileCount.x; i++) {
         ctx.beginPath();
         ctx.moveTo(i * gridSize, 0);
         ctx.lineTo(i * gridSize, canvas.height);
         ctx.stroke();
-
+      }
+      for (let i = 0; i <= tileCount.y; i++) {
         ctx.beginPath();
         ctx.moveTo(0, i * gridSize);
         ctx.lineTo(canvas.width, i * gridSize);
@@ -121,36 +138,79 @@ const SnakeGame: React.FC<SnakeGameProps> = ({ user }) => {
     const handleGameOver = () => {
       setGameOver(true);
       updateLeaderboard();
+      if (window.TelegramGameProxy) {
+        window.TelegramGameProxy.setScore(score);
+      }
     };
 
     const handleKeyPress = (e: KeyboardEvent) => {
       switch (e.key) {
         case "ArrowUp":
-          dx = 0;
-          dy = -1;
+          if (dy === 0) {
+            dx = 0;
+            dy = -1;
+          }
           break;
         case "ArrowDown":
-          dx = 0;
-          dy = 1;
+          if (dy === 0) {
+            dx = 0;
+            dy = 1;
+          }
           break;
         case "ArrowLeft":
-          dx = -1;
-          dy = 0;
+          if (dx === 0) {
+            dx = -1;
+            dy = 0;
+          }
           break;
         case "ArrowRight":
-          dx = 1;
-          dy = 0;
+          if (dx === 0) {
+            dx = 1;
+            dy = 0;
+          }
           break;
       }
     };
 
+    const handleTouchStart = (e: TouchEvent) => {
+      const touch = e.touches[0];
+      const rect = canvas.getBoundingClientRect();
+      const x = touch.clientX - rect.left;
+      const y = touch.clientY - rect.top;
+
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
+
+      if (Math.abs(x - centerX) > Math.abs(y - centerY)) {
+        // Horizontal movement
+        if (x > centerX && dx === 0) {
+          dx = 1;
+          dy = 0;
+        } else if (x < centerX && dx === 0) {
+          dx = -1;
+          dy = 0;
+        }
+      } else {
+        // Vertical movement
+        if (y > centerY && dy === 0) {
+          dx = 0;
+          dy = 1;
+        } else if (y < centerY && dy === 0) {
+          dx = 0;
+          dy = -1;
+        }
+      }
+    };
+
     document.addEventListener("keydown", handleKeyPress);
+    canvas.addEventListener("touchstart", handleTouchStart);
     gameLoop();
 
     return () => {
       document.removeEventListener("keydown", handleKeyPress);
+      canvas.removeEventListener("touchstart", handleTouchStart);
     };
-  }, []);
+  }, [gameSize, score]);
 
   const updateLeaderboard = async () => {
     if (!user) return;
@@ -183,26 +243,26 @@ const SnakeGame: React.FC<SnakeGameProps> = ({ user }) => {
     }
   };
 
-  const shareScore = () => {
-    if (window.TelegramGameProxy) {
-      // @ts-ignore
-      window.TelegramGameProxy.shareScore();
-    }
+  const restartGame = () => {
+    setScore(0);
+    setGameOver(false);
   };
 
   return (
     <div className={styles.gameContainer}>
       <canvas
         ref={canvasRef}
-        width={300}
-        height={300}
+        width={gameSize.width}
+        height={gameSize.height}
         className={styles.gameCanvas}
       />
       <div className={styles.scoreBoard}>Score: {score}</div>
       {gameOver && (
         <div className={styles.gameOver}>
           <h2>Game Over!</h2>
-          <button onClick={shareScore}>Share Score</button>
+          <button onClick={restartGame} className={styles.gameButton}>
+            Play Again
+          </button>
         </div>
       )}
       <div className={styles.leaderboard}>

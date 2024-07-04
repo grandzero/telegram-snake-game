@@ -16,6 +16,7 @@ declare global {
     TelegramGameProxy?: {
       initParams: (params: string) => void;
       getUserData: () => Promise<TelegramUser>;
+      setScore: (score: number) => void;
     };
   }
 }
