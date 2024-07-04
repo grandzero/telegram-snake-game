@@ -1,0 +1,32 @@
+.gameContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .gameCanvas {
+    border: 1px solid black;
+  }
+  
+  .scoreBoard {
+    margin-top: 20px;
+    font-size: 24px;
+  }
+  
+  .gameOver {
+    margin-top: 20px;
+    text-align: center;
+  }
+  
+  .leaderboard {
+    margin-top: 20px;
+  }
+  
+  .leaderboard ul {
+    list-style-type: none;
+    padding: 0;
+  }
+  
+  .leaderboard li {
+    margin-bottom: 5px;
+  }
