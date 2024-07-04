@@ -45,10 +45,10 @@ const SnakeGame: React.FC<SnakeGameProps> = ({ user }) => {
         handleGameOver();
         return;
       }
-      checkCollision();
       clearCanvas();
       drawFood();
       drawSnake();
+      drawGrid();
       setTimeout(gameLoop, 100);
     };
 
@@ -82,17 +82,17 @@ const SnakeGame: React.FC<SnakeGameProps> = ({ user }) => {
     };
 
     const clearCanvas = () => {
-      ctx.fillStyle = "white";
+      ctx.fillStyle = "#000";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
     };
 
     const drawFood = () => {
-      ctx.fillStyle = "red";
+      ctx.fillStyle = "#0f0";
       ctx.fillRect(food.x * gridSize, food.y * gridSize, gridSize, gridSize);
     };
 
     const drawSnake = () => {
-      ctx.fillStyle = "green";
+      ctx.fillStyle = "#0f0";
       snake.forEach((segment) => {
         ctx.fillRect(
           segment.x * gridSize,
@@ -101,6 +101,21 @@ const SnakeGame: React.FC<SnakeGameProps> = ({ user }) => {
           gridSize
         );
       });
+    };
+
+    const drawGrid = () => {
+      ctx.strokeStyle = "#030";
+      for (let i = 0; i < tileCount; i++) {
+        ctx.beginPath();
+        ctx.moveTo(i * gridSize, 0);
+        ctx.lineTo(i * gridSize, canvas.height);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(0, i * gridSize);
+        ctx.lineTo(canvas.width, i * gridSize);
+        ctx.stroke();
+      }
     };
 
     const handleGameOver = () => {
@@ -169,7 +184,6 @@ const SnakeGame: React.FC<SnakeGameProps> = ({ user }) => {
   };
 
   const shareScore = () => {
-    // @ts-ignore
     if (window.TelegramGameProxy) {
       // @ts-ignore
       window.TelegramGameProxy.shareScore();

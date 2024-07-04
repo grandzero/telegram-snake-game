@@ -35,8 +35,8 @@ export default function Home() {
   return (
     <div className={styles.container}>
       <Head>
-        <title>Telegram Snake Game</title>
-        <meta name="description" content="Snake game for Telegram" />
+        <title>Retro Snake Game</title>
+        <meta name="description" content="Retro Snake game for Telegram" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
@@ -48,7 +48,7 @@ export default function Home() {
 
       <main className={styles.main}>
         <h1 className={styles.title}>
-          Welcome to Snake Game, {user ? user.first_name : "Player"}!
+          Welcome to Retro Snake, {user ? user.first_name : "Player"}!
         </h1>
 
         <SnakeGame user={user} />
