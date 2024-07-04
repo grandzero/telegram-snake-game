@@ -22,8 +22,13 @@ const SnakeGame: React.FC<SnakeGameProps> = ({ user }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [score, setScore] = useState<number>(0);
   const [gameOver, setGameOver] = useState<boolean>(false);
+  const [gameStarted, setGameStarted] = useState<boolean>(false);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [gameSize, setGameSize] = useState({ width: 300, height: 300 });
+  const [direction, setDirection] = useState<{ dx: number; dy: number }>({
+    dx: 1,
+    dy: 0,
+  });
 
   useEffect(() => {
     const updateGameSize = () => {
@@ -34,15 +39,12 @@ const SnakeGame: React.FC<SnakeGameProps> = ({ user }) => {
 
     updateGameSize();
     window.addEventListener("resize", updateGameSize);
+    fetchLeaderboard();
     return () => window.removeEventListener("resize", updateGameSize);
   }, []);
 
   useEffect(() => {
-    fetchLeaderboard();
-  }, []);
-
-  useEffect(() => {
-    if (!canvasRef.current) return;
+    if (!canvasRef.current || !gameStarted) return;
 
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
@@ -56,8 +58,6 @@ const SnakeGame: React.FC<SnakeGameProps> = ({ user }) => {
 
     let snake = [{ x: 10, y: 10 }];
     let food = { x: 15, y: 15 };
-    let dx = 1;
-    let dy = 0;
     let gameLoopInterval: number;
 
     const gameLoop = () => {
@@ -71,7 +71,10 @@ const SnakeGame: React.FC<SnakeGameProps> = ({ user }) => {
     };
 
     const moveSnake = () => {
-      const head = { x: snake[0].x + dx, y: snake[0].y + dy };
+      const head = {
+        x: snake[0].x + direction.dx,
+        y: snake[0].y + direction.dy,
+      };
       snake.unshift(head);
       if (head.x === food.x && head.y === food.y) {
         setScore((prevScore) => prevScore + 1);
@@ -134,82 +137,19 @@ const SnakeGame: React.FC<SnakeGameProps> = ({ user }) => {
     const handleGameOver = () => {
       clearInterval(gameLoopInterval);
       setGameOver(true);
+      setGameStarted(false);
       updateLeaderboard();
       if (window.TelegramGameProxy) {
         window.TelegramGameProxy.setScore(score);
       }
     };
 
-    const handleKeyPress = (e: KeyboardEvent) => {
-      switch (e.key) {
-        case "ArrowUp":
-          if (dy === 0) {
-            dx = 0;
-            dy = -1;
-          }
-          break;
-        case "ArrowDown":
-          if (dy === 0) {
-            dx = 0;
-            dy = 1;
-          }
-          break;
-        case "ArrowLeft":
-          if (dx === 0) {
-            dx = -1;
-            dy = 0;
-          }
-          break;
-        case "ArrowRight":
-          if (dx === 0) {
-            dx = 1;
-            dy = 0;
-          }
-          break;
-      }
-    };
-
-    const handleTouchStart = (e: TouchEvent) => {
-      const touch = e.touches[0];
-      const rect = canvas.getBoundingClientRect();
-      const x = touch.clientX - rect.left;
-      const y = touch.clientY - rect.top;
-
-      const centerX = canvas.width / 2;
-      const centerY = canvas.height / 2;
-
-      if (Math.abs(x - centerX) > Math.abs(y - centerY)) {
-        // Horizontal movement
-        if (x > centerX && dx === 0) {
-          dx = 1;
-          dy = 0;
-        } else if (x < centerX && dx === 0) {
-          dx = -1;
-          dy = 0;
-        }
-      } else {
-        // Vertical movement
-        if (y > centerY && dy === 0) {
-          dx = 0;
-          dy = 1;
-        } else if (y < centerY && dy === 0) {
-          dx = 0;
-          dy = -1;
-        }
-      }
-    };
-
-    document.addEventListener("keydown", handleKeyPress);
-    canvas.addEventListener("touchstart", handleTouchStart);
-
     gameLoopInterval = window.setInterval(gameLoop, 100);
 
     return () => {
-      document.removeEventListener("keydown", handleKeyPress);
-      canvas.removeEventListener("touchstart", handleTouchStart);
       clearInterval(gameLoopInterval);
     };
-  }, [gameSize, gameOver]);
+  }, [gameSize, gameStarted, direction, score]);
 
   const updateLeaderboard = async () => {
     if (!user) return;
@@ -242,9 +182,13 @@ const SnakeGame: React.FC<SnakeGameProps> = ({ user }) => {
     }
   };
 
-  const restartGame = () => {
-    setScore(0);
-    setGameOver(false);
+  const startGame = (dx: number, dy: number) => {
+    if (!gameStarted) {
+      setGameStarted(true);
+      setGameOver(false);
+      setScore(0);
+    }
+    setDirection({ dx, dy });
   };
 
   return (
@@ -256,10 +200,38 @@ const SnakeGame: React.FC<SnakeGameProps> = ({ user }) => {
         className={styles.gameCanvas}
       />
       <div className={styles.scoreBoard}>Score: {score}</div>
+      <div className={styles.controls}>
+        <button
+          onClick={() => startGame(0, -1)}
+          className={styles.controlButton}
+        >
+          ↑
+        </button>
+        <div>
+          <button
+            onClick={() => startGame(-1, 0)}
+            className={styles.controlButton}
+          >
+            ←
+          </button>
+          <button
+            onClick={() => startGame(1, 0)}
+            className={styles.controlButton}
+          >
+            →
+          </button>
+        </div>
+        <button
+          onClick={() => startGame(0, 1)}
+          className={styles.controlButton}
+        >
+          ↓
+        </button>
+      </div>
       {gameOver && (
         <div className={styles.gameOver}>
           <h2>Game Over!</h2>
-          <button onClick={restartGame} className={styles.gameButton}>
+          <button onClick={() => startGame(1, 0)} className={styles.gameButton}>
             Play Again
           </button>
         </div>

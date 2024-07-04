@@ -25,6 +25,30 @@
     color: #0f0;
   }
   
+  .controls {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 10px;
+  }
+  
+  .controlButton {
+    background-color: #000;
+    color: #0f0;
+    border: 2px solid #0f0;
+    padding: 10px 20px;
+    font-size: 24px;
+    cursor: pointer;
+    margin: 5px;
+    width: 60px;
+    height: 60px;
+  }
+  
+  .controlButton:hover {
+    background-color: #0f0;
+    color: #000;
+  }
+  
   .gameOver {
     margin-top: 10px;
     text-align: center;
@@ -86,5 +110,11 @@
     .gameButton {
       font-size: 16px;
       padding: 8px 16px;
+    }
+  
+    .controlButton {
+      font-size: 20px;
+      width: 50px;
+      height: 50px;
     }
   }
